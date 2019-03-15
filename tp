@@ -1,19 +1,16 @@
 #!/usr/bin/bash
 
 # TELEPORT
-# Author: Ruhe - ruhe@riseup.net - github.com/bitteruhe
+# Author: Abzicht - abzicht@gmail.com - github.com/abzicht
 # This tool teleports to any defined portal
-#
 # Config methodology was found here: https://unix.stackexchange.com/questions/175648/use-config-file-for-my-shell-script#331965 - Author: gw0
-# 
 # Installation:
-# Source tp under ~/.bashrc like so:
+# Source tp under ~/.bashrc or ~/.zshrc like so:
 # source $PWD/tp
 #
 # Whether this application was run successfully or not is determined by the arrow output:
-#
 # Arrow  : Meaning
-# ------ : ---------------------------------------------------------------------------------------
+# ------ : ---------------------------------------------------------------------------------
 # --> $1 : The application successfully teleported to $1
 # -/> $1 : The portal $1 was neither specified in ~/.tp_config nor in ~/.tp_config.defaults
 # -x> $1 : The underlying command (cd) returned a non-zero exit code
@@ -32,10 +29,10 @@ if [ ! -e "$default_" ] ; then
 r=/
 root=/root
 home=HOME/
-documents=HOME/Documents
+docs=HOME/Documents
 downloads=HOME/Downloads
-desktop=HOME/Desktop
-pictures=HOME/Pictures" > $default_
+dsk=HOME/Desktop
+pics=HOME/Pictures" > $default_
 fi
 
 
@@ -59,32 +56,7 @@ config_get() {
 
 # Display help for this tool
 show_help(){
-	echo -e "
-			
-\e[35m              __,aaPPPPPPPPaa,__
-          ,adP\"\"\"\'          \`\"\"Yb,_
-       ,adP'                     \`\"Yb,
-     ,dP'     ,aadPP\"\"\"\"\"YYba,_     \`\"Y,
-    ,P'    ,aP\"'            \`\"\"Ya,     \"Y,
-   ,P'    aP'     _________     \`\"Ya    \`Yb,
-  ,P'    d\"    ,adP\"\"\"\"\"\"\"\"Yba,    \`Y,    \"Y,
- ,d'   ,d'   ,dP\"            \`Yb,   \`Y,    \`Y,
- d'   ,d'   ,d'    ,dP\"\"Yb,    \`Y,   \`Y,    \`b
- 8    d'    d'   ,d\"      \"b,   \`Y,   \`8,    Y,
- 8    8     8    d'    _   \`Y,   \`8    \`8    \`b
- 8    8     8    8     8    \`8    8     8     8
- 8    Y,    Y,   \`b, ,aP     P    8    ,P     8
- I,   \`Y,   \`Ya    \"\"\"\"     d'   ,P    d\"    ,P
- \`Y,   \`8,    \`Ya         ,8\"   ,P'   ,P'    d'
-  \`Y,   \`Ya,    \`Ya,,__,,d\"'   ,P'   ,P\"    ,P
-   \`Y,    \`Ya,     \`\"\"\"\"'     ,P'   ,d\"    ,P'
-    \`Yb,    \`\"Ya,_          ,d\"    ,P'    ,P'
-      \`Yb,      \"\"YbaaaaaadP\"     ,P'    ,P'   (Normand
-       \`Yba,                    ,d'    ,dP'    Veilleux)
-           \`\"Yba,__       __,adP\"     dP\"
-               \`\"\"\"\"\"\"\"\"\"\"\"\"\"'
-\e[0m
-
+  echo -e "
 This is Teleport - a tool for teleporting to any desired location.
 To teleport, choose a previously setup portal.
 
@@ -95,7 +67,7 @@ OPTIONS
   -h, --help              prints this help
   -a, --add PORTAL PATH   adds the new portal PORTAL that points to PATH to the list
                           of configured portals ($HOME/.tp_config)
-  -l, --list              lists all available portals (default and custom, 
+  -l, --list              lists all available portals (default and custom,
                           specified in $HOME/.tp_config and $HOME/.tp_config.defaults)
   -t, --test TEST         displays, whether a portal called TEST is specified
 PORTAL
@@ -109,25 +81,22 @@ ARROW OUTPUT
   \e[32m-->\e[0m : The teleport was successful
   \e[33m-/>\e[0m : An error occurred while trying to teleport
   \e[31m--x\e[0m : The portal is not specified
-  
+
   A new portal is only added to the list of portals, if there is no existing portal of that name.
   Whether the portal was successfully added or not is indicated by the following output:
   \e[32m-->\e[0m : The portal was successfully added
   \e[31m--!\e[0m : The portal is already configured
 
 SETUP
-  Manual: 
-    Let \$path be the path you store tp at.
-    Add the following line to $HOME/.bashrc:
-      source \$path/tp
-    Then, source the .bashrc script:
-      source $HOME/.bashrc
-  Automatic:
-    Run the install script. This does the steps described in Setup/Manual automatically for you.
+  Let \$path be the path you store tp at.
+  Add the following line to $HOME/.bashrc:
+    source \$path/tp
+  Then, source the .bashrc script:
+    source $HOME/.bashrc
 
 AUTHOR
-  Ruhe <ruhe@riseup.net>
-  Ruhe's GitHub: https://github.com/bitteruhe
+  Abzicht <abzicht@gmail.com>
+  Abzicht's GitHub: https://github.com/abzicht
 "
 }
 
@@ -135,68 +104,68 @@ beginswith(){ case $2 in "$1"*) true;; *) false;; esac; }
 
 # Lists all portals defined in \$1
 list_portal_file(){
-	declare -a paths
-	declare -a portals
-	# Load file into array.
-	let max_portal_length=0
-	let j=0
-	while IFS=$'\n' read -r line_data; do
-		portals[j]="$(echo ${line_data} | cut -d '=' -f 1)"
-		if ! beginswith \# "${portals[j]}"; then
-			if [ $max_portal_length -lt ${#portals[j]} ]; then
-				max_portal_length=${#portals[j]}
-			fi
-		fi
-	    ((++j))
-	done < ${1}
-	let i=0
-	while IFS=$'\n' read -r line_data; do
-		if [ "${#line_data}" != "0" ]; then
-			paths[i]="$(echo ${line_data} | cut -d '=' -f 2-)"
-		fi
-	    ((++i))
-	done < ${1}
+  # Load file into array.
+  typeset -A paths
+  typeset -A portals
+  let max_portal_length=0
+  let j=0
+  while IFS=$'\n' read -r line_data; do
+    portals[$j]="$(echo ${line_data} | cut -d '=' -f 1)"
+    if ! beginswith \# "${portals[$j]}"; then
+      if [ $max_portal_length -lt ${#portals[$j]} ]; then
+        max_portal_length=${#portals[$j]}
+      fi
+    fi
+      ((++j))
+  done < ${1}
+  let i=0
+  while IFS=$'\n' read -r line_data; do
+    if [ "${#line_data}" != "0" ]; then
+      paths[$i]="$(echo ${line_data} | cut -d '=' -f 2-)"
+    fi
+      ((++i))
+  done < ${1}
 
-	for i in "${!paths[@]}"; do
-		if ! beginswith \# "${portals[i]}"; then
-			let num_of_whitespace=$((max_portal_length-${#portals[i]}))
-			whitespace=$(printf '%*s' "$num_of_whitespace")
-			echo -e "\e[34m${portals[i]}${whitespace} \e[32m-->\e[34m ${paths[i]}\e[0m"
-		fi
-	done
+  for i in {1..${#paths}}; do
+    if ! beginswith \# "${portals[$i]}"; then
+      let num_of_whitespace=$((max_portal_length-${#portals[$i]}))
+      whitespace=$(printf '%*s' "$num_of_whitespace")
+      echo -e "\e[34m${portals[$i]}${whitespace} \e[32m-->\e[34m ${paths[$i]}\e[0m"
+    fi
+  done
 }
 
 # Lists all available portals
 list_portals(){
-	echo -e "Custom portals:"
-	list_portal_file $file_
-	echo -e "Default portals:"
-	list_portal_file $default_
+  echo -e "Custom portals:"
+  list_portal_file $file_
+  echo -e "Default portals:"
+  list_portal_file $default_
 }
 
 # Test if the portal exists
 test_portal(){
-	t=$(config_get ${1})
-	if [ "${t}" != "__UNDEFINED__" ]; then
-		if beginswith HOME "${t}"; then
-			t="$HOME${t##HOME}"
-		fi
-		echo -e "${1} \e[32m-->\e[0m ${t} "
-	else
-		echo -e "${1} \e[31m--x\e[0m"
-	fi
+  t=$(config_get ${1})
+  if [ "${t}" != "__UNDEFINED__" ]; then
+    if beginswith HOME "${t}"; then
+      t="$HOME${t##HOME}"
+    fi
+    echo -e "${1} \e[32m-->\e[0m ${t} "
+  else
+    echo -e "${1} \e[31m--x\e[0m"
+  fi
 }
 
 # Adds a portal to $file_ unless another portal with the same name already exists
 add_portal(){
-	t=$(config_get ${1})
-	if [ "${t}" == "__UNDEFINED__" ]; then
-		echo "${1}=${2}" >> $file_
-		echo -e "${1} \e[32m-->\e[0m ${2}"
-	else
-		echo -e "${1} \e[31m--!\e[0m ${2}"
-		echo -e "${1} \e[32m-->\e[0m ${t}"
-	fi
+  t=$(config_get ${1})
+  if [ "${t}" != "__UNDEFINED__" ]; then
+    echo -e "${1} \e[31m--!\e[0m ${2}"
+    echo -e "${1} \e[32m-->\e[0m ${t}"
+  else
+    echo "${1}=${2}" >> $file_
+    echo -e "${1} \e[32m-->\e[0m ${2}"
+  fi
 }
 
 # Parsing all arguments
@@ -208,23 +177,23 @@ while [ $# -ge 1 ]; do
                     break
                    ;;
                 -l|--list)
-			list_portals
+      list_portals
                         ;;
                 -h|--help)
-			show_help
+      show_help
                         ;;
-		-t|--test)
-			test_portal $2
-			shift 
-			;;
-		-a|--add)
-			portal_name=$2
-			shift
-			shift
-			portal_path=$2
-			add_portal $portal_name $portal_path
-			shift
-			;;
+    -t|--test)
+      test_portal $2
+      shift
+      ;;
+    -a|--add)
+      portal_name=$2
+      shift
+      shift
+      portal_path=$2
+      add_portal $portal_name $portal_path
+      shift
+      ;;
         esac
 
         shift
@@ -232,19 +201,19 @@ done
 
 # The "core" function
 if [ ${#*} != 0 ]; then
-	dir=$(config_get $*)
-	if [ "${dir}" != "__UNDEFINED__" ]; then
-		if beginswith HOME "${dir}"; then
-			dir="$HOME${dir##HOME}"
-		fi
-		cd $dir &> /dev/null
-		if [ "$?" != "0" ]; then
-			echo -e "$1 \e[33m-/>\e[0m $dir"
-		else
-			echo -e "$1 \e[32m-->\e[0m $dir"
-		fi
-	else
-		echo -e "$1 \e[31m--x\e[0m"
-	fi
+  dir=$(config_get $*)
+  if [ "${dir}" != "__UNDEFINED__" ]; then
+    if beginswith HOME "${dir}"; then
+      dir="$HOME${dir##HOME}"
+    fi
+    cd $dir &> /dev/null
+    if [ "$?" != "0" ]; then
+      echo -e "$1 \e[33m-/>\e[0m $dir"
+    else
+      echo -e "$1 \e[32m-->\e[0m $dir"
+    fi
+  else
+    echo -e "$1 \e[31m--x\e[0m"
+  fi
 fi
 }

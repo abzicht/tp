@@ -76,15 +76,18 @@ clargs --> HOME/Documents/code/java/clargs/src/main/java/org/ruhe
 ```
 
 ## Installation
-Clone this repo and run the install script:
+Clone this repo and source the script:
 ```bash
-$ git clone https://github.com/bitteruhe/tp && cd tp
-$ ./install.sh
+$ git clone https://github.com/abzicht/tp && cd tp
+$ source $PWD/tp
 ```
-If you don't want to run the install script, follow these steps:
-1. Let `$path` be the path you store `tp` at
-2. Add the following line to `$HOME/bashrc`: `source $path/tp`
-3. Apply the changes: `source $HOME/.bashrc`
+This does not make tp permanent, its functionality won't be present after the
+next login. To permanently install tp, run
+```bash
+echo "source $PWD/tp" >> $HOME/.bashrc
+```
+once. This assumes that you use bash.
 
-After running `tp` for the first time, the two files `~/.tp_config` and `~/.tp_config.defaults` are created. Add your own portals to `~/.tp_config` with `tp -a` or
-use the existing portals in `~/.tp_config.defaults`.
+After running `tp` for the first time, the two files `~/.tp_config`
+and `~/.tp_config.defaults` are created. Add your own portals to `~/.tp_config`
+with `tp -a` or use the existing portals in `~/.tp_config.defaults`.
