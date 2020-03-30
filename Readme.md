@@ -1,38 +1,48 @@
 # TP
-Teleport - A bash tool for transitioning from one directory to another.  
+TP - A bash/zsh tool for teleporting from one directory to another.
+
 ```text
 tp --> tp -/> cd --! dc --x
 ```
+
 ## What it is
 `tp` is just a wrapper for `cd`. It makes use of so called `portals` that point
 to user defined directories.
+
 ## Why you need TP
 Let's say your current working directory is `~/Documents/foo/bar/1/oak/blah`
 and you quickly want to change your directory to `~/Documents/oof/rab/1/kao/halb`.
-Consequently, you will start entering dots into your command line:
+The worst thing you can do is to start entering dots into your command line:
+
 ```bash
 $ cd ../../../../oof/rab/1/kao/halb
 ```
-Since you are using both `blah` and `halb` very regularly, you often find yourself
-entering such commands. You maybe start wondering: isn't there a nice alternative
-to such mind numbing procedure? Wonder no more! `tp` is here to save you.
+
+Since you are using both `blah` and `halb` very regularly, you often find
+yourself remembering such long paths and entering such commands. You maybe
+start wondering: isn't there a nice alternative to such mind numbing procedure?
+Wonder no more! `tp` is here to save you.
 
 With `tp`, switching from `~/Documents/foo/bar/1/oak/blah` to
 `~/Documents/oof/rab/1/kao/halb` is done in a 7 char command:
+
 ```bash
 $ tp halb
-halb --> HOME/Documents/oof/rab/1/kao/halb
+halb --> /home/user/Documents/oof/rab/1/kao/halb
 ```
+
 And when you want to switch back, simply enter `tb blah`:
+
 ```bash
 $ tp blah
-blah --> HOME/Documents/foo/bar/1/oak/blah
+blah --> /home/user/Documents/foo/bar/1/oak/blah
 ```
+
 ## Where you need TP
-Everybody has a couple of static directories she/he uses on a daily basis.
+Everybody has a couple of static directories they use on a daily basis.
 Such directories are the perfect use case for `tp`. Of course, seldom used
-directories, e.g. `~/Documents/code/java/sesame/src/main/java/io`, do not
-require a separate portal, when `~/Documents/code/java/sesame/` already has one.
+directories, e.g. `~/Documents/code/java/project/src/main/java/io`, do not
+require a separate portal, if `~/Documents/code/java/project/` already has one.
 
 ## How you use TP
 `tp` was developed with the ambition to create a minimalistic tool that offers
@@ -50,43 +60,54 @@ Of course, you can also manually add portals by editing `~/.tp_config`
 with your favorite text editor.
 
 ### TP in action
-Let's say that this is your `~/.tp_config` file:
+Let's assume this is your `~/.tp_config` file:
+
 ```text
 up=../
 r=/
 root=/root
-documents=HOME/Documents/
-local=HOME/.local/share
-code=HOME/Documents/code/
-bash=HOME/Documents/code/bash
-java=HOME/Documents/code/java
-clargs=HOME/Documents/code/java/clargs/src/main/java/org/ruhe
-py=HOME/Documents/code/python
-python=HOME/Documents/code/python
-go=HOME/Documents/code/go
-tp=HOME/Documents/code/bash/teleport
+documents=/home/user/Documents/
+local=/home/user/.local/share
+code=/home/user/Documents/code/
+bash=/home/user/Documents/code/bash
+java=/home/user/Documents/code/java
+proj=/home/user/Documents/code/java/proj/src/main/java/org/
+py=/home/user/Documents/code/python
+python=/home/user/Documents/code/python
+go=/home/user/Documents/code/go
+tp=/home/user/Documents/code/bash/teleport
 volumes=/var/lib/docker/volumes
 ```
+
 You are currently working on a python project and want to switch to your java
-project called `clargs`. Instead of using cd with a (long) relative path or
+project. Instead of using `cd` with a (long) relative path or
 inconvenient absolute path, you simply enter this command:
+
 ```bash
-$ tp clargs
-clargs --> HOME/Documents/code/java/clargs/src/main/java/org/ruhe
+$ tp proj
+proj --> /home/user/Documents/code/java/proj/src/main/java/org/
 ```
 
 ## Installation
 Clone this repo and source the script:
+
 ```bash
 $ git clone https://github.com/abzicht/tp && cd tp
 $ source $PWD/tp
 ```
-This does not make tp permanent, its functionality won't be present after the
+
+This does not install tp permanently, its functionality won't be present after the
 next login. To permanently install tp, run
+
 ```bash
 echo "source $PWD/tp" >> $HOME/.bashrc
 ```
-once. This assumes that you use bash.
+
+once. This assumes that you use bash. For ZSH, run
+
+```bash
+echo "source $PWD/tp" >> $HOME/.zshrc
+```
 
 After running `tp` for the first time, the two files `~/.tp_config`
 and `~/.tp_config.defaults` are created. Add your own portals to `~/.tp_config`

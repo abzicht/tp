@@ -15,44 +15,47 @@
 # -/> $1 : The portal $1 was neither specified in ~/.tp_config nor in ~/.tp_config.defaults
 # -x> $1 : The underlying command (cd) returned a non-zero exit code
 
-# Setup required files
 
-tp(){
-file_="$HOME/.tp_config"
+# Setup required files
+declare -g portal_file_="$HOME/.tp_config"
 default_="$HOME/.tp_config.defaults"
-if [ ! -e "$file_" ] ; then
-    touch "$file_"
-fi
-if [ ! -e "$default_" ] ; then
-    touch "$default_"
-    echo "#Grammar: [portal]=[path]
-r=/
+
+[ -e "$portal_file_" ] || touch "$portal_file_";
+[ -e "$default_" ] || (touch "$default_"; echo "r=/
 root=/root
 home=HOME/
 docs=HOME/Documents
 downloads=HOME/Downloads
 dsk=HOME/Desktop
-pics=HOME/Pictures" > $default_
-fi
+pics=HOME/Pictures" > $default_)
 
+
+beginswith(){ case $2 in "$1"*) true;; *) false;; esac; }
+
+declare -A portals=()
+
+read_portals(){
+file_=${1}
+for line in $(cat $file_); do
+		! beginswith \# "$line" &&
+		(echo $line | cut -d "=" -f 2 &>/dev/null) &&
+		key=$(echo $line | cut -d "=" -f 1) &&
+		value=$(echo $line | cut -d "=" -f 2) &&
+		portals[${key}]="${value}";
+done
+}
+
+read_portals $default_
+read_portals $portal_file_
+
+# ${!portals[@]} expands the keys
+# ${portals[@]} expands the values
+
+tp(){
 
 args=$(getopt -l "add:,list,test:,help" -o "lht:a:" -- "$@")
 
 eval set -- "$args"
-
-# Read the value $2 specified in file $1
-config_read_file() {
-    (grep -E "^${2}=" -m 1 "${1}" 2>/dev/null || echo "VAR=__UNDEFINED__") | head -n 1 | cut -d '=' -f 2-;
-}
-
-# Read the value $1 in the files $file_ and optionally $default_
-config_get() {
-    val="$(config_read_file $file_ "${1}")";
-    if [ "${val}" = "__UNDEFINED__" ]; then
-        val="$(config_read_file $default_ "${1}")";
-    fi
-    printf -- "%s" "${val}";
-}
 
 # Display help for this tool
 show_help(){
@@ -69,12 +72,14 @@ OPTIONS
                           of configured portals ($HOME/.tp_config)
   -l, --list              lists all available portals (default and custom,
                           specified in $HOME/.tp_config and $HOME/.tp_config.defaults)
-  -t, --test TEST         displays, whether a portal called TEST is specified
+  -t, --test TEST         displays, if a portal called TEST is specified and if
+                          it is functional
 PORTAL
   Specify one of the available portals to change the directory to the corresponding location.
   Available portals are displayed with tp -l
-  Before teleporting, it is also possible to check the existance of a portal with tp -t PORTAL.
+  Before teleporting, it is also possible to check the existence of a portal with tp -t PORTAL.
   Portals are specified in $HOME/.tp_config and $HOME/.tp_config.defaults.
+  Portals of $HOME/.tp_config overwrite the values of $HOME/.tp_config.defaults.
 
 ARROW OUTPUT
   When teleporting, a colored arrow indicates if going through the portal was successful or not:
@@ -85,88 +90,92 @@ ARROW OUTPUT
   A new portal is only added to the list of portals, if there is no existing portal of that name.
   Whether the portal was successfully added or not is indicated by the following output:
   \e[32m-->\e[0m : The portal was successfully added
+  \e[33m-/>\e[0m : The portal was not added because its path is broken
   \e[31m--!\e[0m : The portal is already configured
 
 SETUP
-  Let \$path be the path you store tp at.
-  Add the following line to $HOME/.bashrc:
+  Let \$path be the path the tp script is stored at.
+  Add the following line to $HOME/.bashrc or $HOME/.zshrc:
     source \$path/tp
-  Then, source the .bashrc script:
-    source $HOME/.bashrc
 
 AUTHOR
   Abzicht <abzicht@gmail.com>
   Abzicht's GitHub: https://github.com/abzicht
+YEAR
+  2020
 "
 }
 
-beginswith(){ case $2 in "$1"*) true;; *) false;; esac; }
-
-# Lists all portals defined in \$1
-list_portal_file(){
-  # Load file into array.
-  typeset -A paths
-  typeset -A portals
-  let max_portal_length=0
-  let j=0
-  while IFS=$'\n' read -r line_data; do
-    portals[$j]="$(echo ${line_data} | cut -d '=' -f 1)"
-    if ! beginswith \# "${portals[$j]}"; then
-      if [ $max_portal_length -lt ${#portals[$j]} ]; then
-        max_portal_length=${#portals[$j]}
-      fi
-    fi
-      ((++j))
-  done < ${1}
-  let i=0
-  while IFS=$'\n' read -r line_data; do
-    if [ "${#line_data}" != "0" ]; then
-      paths[$i]="$(echo ${line_data} | cut -d '=' -f 2-)"
-    fi
-      ((++i))
-  done < ${1}
-
-  for i in {1..${#paths}}; do
-    if ! beginswith \# "${portals[$i]}"; then
-      let num_of_whitespace=$((max_portal_length-${#portals[$i]}))
-      whitespace=$(printf '%*s' "$num_of_whitespace")
-      echo -e "\e[34m${portals[$i]}${whitespace} \e[32m-->\e[34m ${paths[$i]}\e[0m"
-    fi
-  done
-}
-
-# Lists all available portals
 list_portals(){
-  echo -e "Custom portals:"
-  list_portal_file $file_
-  echo -e "Default portals:"
-  list_portal_file $default_
+  let max_portal_length=0
+  if [ ! -z $(echo $SHELL | grep bash ) ]; then
+    for key in ${!portals[@]}; do
+      if [ $max_portal_length -lt ${#key} ]; then
+        max_portal_length="${#key}"
+      fi
+    done
+    for key in ${!portals[@]}; do
+        let num_of_whitespace=$((max_portal_length-${#key}))
+        whitespace=$(printf '%*s' "$num_of_whitespace")
+        path_="${portals[$key]}"
+        (portal_exists $key && \
+        ((portal_works $key && echo -e "${key}${whitespace} \e[32m-->\e[0m ${path_}") || \
+        echo -e "${key}${whitespace} \e[33m-/->\e[0m ${path_}")) || \
+        echo -e "${key}${whitespace} \e[31m--x\e[0m"
+    done
+  else
+    for key in ${(k)portals[@]}; do
+      if [ $max_portal_length -lt ${#key} ]; then
+        max_portal_length="${#key}"
+      fi
+    done
+    for key in ${(k)portals[@]}; do
+        let num_of_whitespace=$((max_portal_length-${#key}))
+        whitespace=$(printf '%*s' "$num_of_whitespace")
+        path_="${portals[$key]}"
+        (portal_exists $key && \
+        ((portal_works $key && echo -e "${key}${whitespace} \e[32m-->\e[0m ${path_}") || \
+  	  echo -e "${key}${whitespace} \e[33m-/->\e[0m ${path_}")) || \
+        echo -e "${key}${whitespace} \e[31m--x\e[0m"
+    done
+  fi
 }
 
-# Test if the portal exists
+portal_exists(){
+#credit: https://stackoverflow.com/questions/13219634/easiest-way-to\
+#-check-for-an-index-or-a-key-in-an-array
+  if [ ${portals[$1]+exists} ]; then
+		  return 0
+  else
+		  return 1
+  fi
+}
+
+portal_works(){
+  $(cd ${portals[$1]} &> /dev/null)
+}
+
+# Test if the portal exists and if it works
 test_portal(){
-  t=$(config_get ${1})
-  if [ "${t}" != "__UNDEFINED__" ]; then
-    if beginswith HOME "${t}"; then
-      t="$HOME${t##HOME}"
-    fi
-    echo -e "${1} \e[32m-->\e[0m ${t} "
-  else
-    echo -e "${1} \e[31m--x\e[0m"
-  fi
+  portal=${1}
+  (portal_exists $portal &&
+  ((portal_works $portal && echo -e "${portal} \e[32m-->\e[0m ${portals[$portal]} ") ||
+  echo -e "${portal} \e[33m-/->\e[0m ${portals[$portal]} ")) ||
+  echo -e "${portal} \e[31m--x\e[0m"
 }
 
-# Adds a portal to $file_ unless another portal with the same name already exists
+# Adds a portal to $portal_file_ unless another portal with the same name already exists
 add_portal(){
-  t=$(config_get ${1})
-  if [ "${t}" != "__UNDEFINED__" ]; then
-    echo -e "${1} \e[31m--!\e[0m ${2}"
-    echo -e "${1} \e[32m-->\e[0m ${t}"
-  else
-    portal_path=$(cd ${2} && pwd)
-    echo "${1}=${portal_path}" >> $file_
-    echo -e "${1} \e[32m-->\e[0m ${portal_path}"
-  fi
+  read_portals $portal_file_
+  portal=${1}
+  (portal_exists $portal &&
+  (echo -e "${portal} \e[31m--!\e[0m ${2}";
+   test_portal ${portal})) ||
+  (portal_path=$((cd ${2} &>/dev/null && pwd) || echo "");
+  ([ -z "$portal_path" ] && echo -e "${portal} \e[33m-/->\e[0m ${2}") ||
+  (echo "${portal}=${portal_path}" >> $portal_file_;
+  read_portals $portal_file_
+  echo -e "${portal} \e[32m-->\e[0m ${portal_path}"))
 }
 
 # Parsing all arguments
@@ -202,19 +211,17 @@ done
 
 # The "core" function
 if [ ${#*} != 0 ]; then
-  dir=$(config_get $*)
-  if [ "${dir}" != "__UNDEFINED__" ]; then
-    if beginswith HOME "${dir}"; then
-      dir="$HOME${dir##HOME}"
-    fi
-    cd $dir &> /dev/null
-    if [ "$?" != "0" ]; then
-      echo -e "$1 \e[33m-/>\e[0m $dir"
+  portal=$*
+  dir=${portals[$portal]}
+  if portal_exists $portal; then
+    if portal_works $portal; then
+      echo -e "${portal} \e[32m-->\e[0m ${dir}"
+      cd $dir &> /dev/null
     else
-      echo -e "$1 \e[32m-->\e[0m $dir"
+      echo -e "${portal} \e[33m-/->\e[0m ${dir}"
     fi
   else
-    echo -e "$1 \e[31m--x\e[0m"
+    echo -e "${portal} \e[31m--x\e[0m"
   fi
 fi
 }
