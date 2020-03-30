@@ -3,7 +3,6 @@
 # TELEPORT
 # Author: Abzicht - abzicht@gmail.com - github.com/abzicht
 # This tool teleports to any defined portal
-# Config methodology was found here: https://unix.stackexchange.com/questions/175648/use-config-file-for-my-shell-script#331965 - Author: gw0
 # Installation:
 # Source tp under ~/.bashrc or ~/.zshrc like so:
 # source $PWD/tp
@@ -23,11 +22,11 @@ default_="$HOME/.tp_config.defaults"
 [ -e "$portal_file_" ] || touch "$portal_file_";
 [ -e "$default_" ] || (touch "$default_"; echo "r=/
 root=/root
-home=HOME/
-docs=HOME/Documents
-downloads=HOME/Downloads
-dsk=HOME/Desktop
-pics=HOME/Pictures" > $default_)
+home=$HOME/
+docs=$HOME/Documents
+downloads=$HOME/Downloads
+dsk=$HOME/Desktop
+pics=$HOME/Pictures" > $default_)
 
 
 beginswith(){ case $2 in "$1"*) true;; *) false;; esac; }
@@ -120,7 +119,7 @@ list_portals(){
         path_="${portals[$key]}"
         (portal_exists $key && \
         ((portal_works $key && echo -e "${key}${whitespace} \e[32m-->\e[0m ${path_}") || \
-        echo -e "${key}${whitespace} \e[33m-/->\e[0m ${path_}")) || \
+        echo -e "${key}${whitespace} \e[33m-/>\e[0m ${path_}")) || \
         echo -e "${key}${whitespace} \e[31m--x\e[0m"
     done
   else
@@ -135,7 +134,7 @@ list_portals(){
         path_="${portals[$key]}"
         (portal_exists $key && \
         ((portal_works $key && echo -e "${key}${whitespace} \e[32m-->\e[0m ${path_}") || \
-  	  echo -e "${key}${whitespace} \e[33m-/->\e[0m ${path_}")) || \
+  	  echo -e "${key}${whitespace} \e[33m-/>\e[0m ${path_}")) || \
         echo -e "${key}${whitespace} \e[31m--x\e[0m"
     done
   fi
@@ -160,7 +159,7 @@ test_portal(){
   portal=${1}
   (portal_exists $portal &&
   ((portal_works $portal && echo -e "${portal} \e[32m-->\e[0m ${portals[$portal]} ") ||
-  echo -e "${portal} \e[33m-/->\e[0m ${portals[$portal]} ")) ||
+  echo -e "${portal} \e[33m-/>\e[0m ${portals[$portal]} ")) ||
   echo -e "${portal} \e[31m--x\e[0m"
 }
 
@@ -172,7 +171,7 @@ add_portal(){
   (echo -e "${portal} \e[31m--!\e[0m ${2}";
    test_portal ${portal})) ||
   (portal_path=$((cd ${2} &>/dev/null && pwd) || echo "");
-  ([ -z "$portal_path" ] && echo -e "${portal} \e[33m-/->\e[0m ${2}") ||
+  ([ -z "$portal_path" ] && echo -e "${portal} \e[33m-/>\e[0m ${2}") ||
   (echo "${portal}=${portal_path}" >> $portal_file_;
   read_portals $portal_file_
   echo -e "${portal} \e[32m-->\e[0m ${portal_path}"))
@@ -218,7 +217,7 @@ if [ ${#*} != 0 ]; then
       echo -e "${portal} \e[32m-->\e[0m ${dir}"
       cd $dir &> /dev/null
     else
-      echo -e "${portal} \e[33m-/->\e[0m ${dir}"
+      echo -e "${portal} \e[33m-/>\e[0m ${dir}"
     fi
   else
     echo -e "${portal} \e[31m--x\e[0m"
